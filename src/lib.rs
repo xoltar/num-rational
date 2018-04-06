@@ -18,8 +18,14 @@
 
 #[cfg(feature = "rustc-serialize")]
 extern crate rustc_serialize;
+
 #[cfg(feature = "serde")]
 extern crate serde;
+
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde_derive;
+
 #[cfg(feature = "num-bigint")]
 extern crate num_bigint as bigint;
 
@@ -33,6 +39,9 @@ use std::hash::{Hash, Hasher};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 use std::str::FromStr;
 
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 #[cfg(feature = "num-bigint")]
 use bigint::{BigInt, BigUint, Sign};
 
@@ -41,6 +50,7 @@ use traits::{FromPrimitive, Float, PrimInt, Num, Signed, Zero, One, Bounded, Num
 
 /// Represents the ratio between 2 numbers.
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "rustc-serialize", derive(RustcEncodable, RustcDecodable))]
 #[allow(missing_docs)]
 pub struct Ratio<T> {
@@ -849,32 +859,6 @@ impl<T> Into<(T, T)> for Ratio<T> {
     }
 }
 
-#[cfg(feature = "serde")]
-impl<T> serde::Serialize for Ratio<T>
-    where T: serde::Serialize + Clone + Integer + PartialOrd
-{
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
-        where S: serde::Serializer
-    {
-        (self.numer(), self.denom()).serialize(serializer)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<T> serde::Deserialize for Ratio<T>
-    where T: serde::Deserialize + Clone + Integer + PartialOrd
-{
-    fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error>
-        where D: serde::Deserializer
-    {
-        let (numer, denom): (T,T) = try!(serde::Deserialize::deserialize(deserializer));
-        if denom.is_zero() {
-            Err(serde::de::Error::invalid_value("denominator is zero"))
-        } else {
-            Ok(Ratio::new_raw(numer, denom))
-        }
-    }
-}
 
 // FIXME: Bubble up specific errors
 #[derive(Copy, Clone, Debug, PartialEq)]
